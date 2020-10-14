@@ -1,0 +1,53 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.SignalR.Client
+@inject StateContainer SK
+@inject NavigationManager NM
+
+<p>SignalR broj: <b>@_srBroj</b><button @onclick="SRuvecaj">Uvecaj</button></p>
+
+<p><b>@SK.Sta</b></p>
+<p><b>@SK.Broj</b></p>
+<Counter PozivRoditelju="KalBek" />
+<Counter PozivRoditelju="KalBek" />
+
+
+<FetchData />
+<Counter PozivRoditelju="KalBek" />
+
+@code
+{
+	private HubConnection _hc;
+
+	private int _br;
+	private int _srBroj;
+
+	protected override void OnInitialized()
+	{
+		SK.OnPromena += StateHasChanged;
+	}
+
+	protected override async Task OnInitializedAsync()
+	{
+		_hc = new HubConnectionBuilder().WithUrl(NM.ToAbsoluteUri("h1")).Build();
+
+		_hc.On<int>("broj", (br) =>
+			{
+				_srBroj = br;
+				StateHasChanged();
+			});
+
+		await _hc.StartAsync();
+		await _hc.SendAsync("Vrati");
+	}
+
+	public void KalBek(int br)
+	{
+		_br = br;
+	}
+
+	private void SRuvecaj()
+	{
+		_hc.SendAsync("Uvecaj");
+	}
+
+}

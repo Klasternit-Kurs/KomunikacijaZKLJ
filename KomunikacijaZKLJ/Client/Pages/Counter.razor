@@ -1,0 +1,57 @@
+﻿@page "/counter"
+@using Microsoft.AspNetCore.SignalR.Client
+@inject StateContainer SK
+@inject NavigationManager NM
+<p>SignalR broj: <b>@_srBroj</b><button @onclick="SRuvecaj">Uvecaj</button></p>
+
+<h1>Counter</h1>
+
+<p>Current count: @SK.Broj</p>
+
+<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+
+@code {
+
+	[CascadingParameter(Name = "NekaVrednost")]
+	public int currentCount { get; set; } = 3;
+
+	[Parameter]
+	public EventCallback<int> PozivRoditelju { get; set; }
+
+	protected override void OnInitialized()
+	{
+		SK.OnPromena += StateHasChanged;
+	}
+
+
+	private void IncrementCount()
+	{
+		SK.Broj++;
+		PozivRoditelju.InvokeAsync(SK.Broj);
+	}
+
+
+	private HubConnection _hc;
+
+	private int _br;
+	private int _srBroj;
+
+	protected override async Task OnInitializedAsync()
+	{
+		_hc = new HubConnectionBuilder().WithUrl(NM.ToAbsoluteUri("h2")).Build();
+
+		_hc.On<int>("broj", (br) =>
+		{
+			_srBroj = br;
+			StateHasChanged();
+		});
+
+		await _hc.StartAsync();
+		await _hc.SendAsync("Vrati");
+	}
+
+	private void SRuvecaj()
+	{
+		_hc.SendAsync("Uvecaj");
+	}
+}
